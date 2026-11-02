@@ -81,14 +81,14 @@ export default plugin<{ jsonStorage: Settings }>({
 
 				cleanup(
 					instead(store, 'getCurrentUser', function (args, original) {
-						const user = Reflect.apply(original, this, args)
+						const user: any = Reflect.apply(original, this, args)
 						if (user?.id) ownId = user.id
 						return asSubscriber(user)
 					}),
 				)
 				cleanup(
 					instead(store, 'getUser', function (args, original) {
-						const user = Reflect.apply(original, this, args)
+						const user: any = Reflect.apply(original, this, args)
 						return ownId && args[0] === ownId ? asSubscriber(user) : user
 					}),
 				)
@@ -99,7 +99,7 @@ export default plugin<{ jsonStorage: Settings }>({
 			getStore('UserProfileStore', (store: any) => {
 				cleanup(
 					instead(store, 'getUserProfile', function (args, original) {
-						const profile = Reflect.apply(original, this, args)
+						const profile: any = Reflect.apply(original, this, args)
 						return ownId && args[0] === ownId ? asSubscriber(profile) : profile
 					}),
 				)
