@@ -8,6 +8,10 @@ The Nitro-subscriber part is ported from Badges Spoof in [valenced-plugins](http
 
 - **Treat me as a Nitro subscriber**: turns the patch on or off.
 - **Subscriber for (months)**: how long ago the subscription is said to have started.
+- **Raise the upload size limit**: also lifts the file size check Discord makes on your device.
+- **Upload limit (MB)**: the size to allow, 1024 by default (1 GB).
+
+Discord's servers enforce the real upload limit, so a file bigger than your account is allowed there can still be refused after it is picked. The size-check function names are best guesses and are only patched when Discord has them.
 
 Reload Valenced after enabling or disabling the plugin.
 

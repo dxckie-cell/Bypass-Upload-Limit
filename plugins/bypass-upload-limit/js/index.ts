@@ -1,8 +1,12 @@
 import { getStore } from '@valenced/discord/flux'
+import { getModules } from '@valenced/modules/finders'
+import { withProps } from '@valenced/modules/finders/filters'
 import { instead } from '@valenced/patcher'
 import {
 	clampMonths,
 	DefaultSettings,
+	LIMIT_FUNCTIONS,
+	limitBytes,
 	setRefresh,
 	subscriberFields,
 } from './shared'
@@ -105,6 +109,29 @@ export default plugin<{ jsonStorage: Settings }>({
 				)
 			}),
 		)
+
+		// The upload size limit Discord checks before sending a file. The server has the final say, so
+		// this only lifts the check on your device.
+		for (const name of LIMIT_FUNCTIONS) {
+			cleanup(
+				getModules(withProps(name), (module: any) => {
+					if (typeof module?.[name] !== 'function') return
+					try {
+						cleanup(
+							instead(module, name, function (args, original) {
+								const settings = current()
+								if (!settings.raiseLimit) return Reflect.apply(original, this, args)
+								const real = Reflect.apply(original, this, args)
+								const wanted = limitBytes(settings.limitMb)
+								return typeof real === 'number' ? Math.max(real, wanted) : wanted
+							}),
+						)
+					} catch {
+						// A function that can't be patched is left alone.
+					}
+				}),
+			)
+		}
 
 		setRefresh(() => userStore?.emitChange?.())
 		cleanup(jsonStorage.subscribe(() => userStore?.emitChange?.()))

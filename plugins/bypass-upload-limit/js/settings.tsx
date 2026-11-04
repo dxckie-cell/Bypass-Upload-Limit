@@ -1,7 +1,7 @@
 import Page from '@valenced/components/Page'
 import { Design } from '@valenced/discord/design'
 import { useState } from 'react'
-import { clampMonths, DefaultSettings, refreshUser } from './shared'
+import { clampMb, clampMonths, DefaultSettings, refreshUser } from './shared'
 import type { PluginSettingsComponent } from '@valenced/plugins/types'
 import type { ComponentProps } from 'react'
 import type { Settings } from './shared'
@@ -15,6 +15,7 @@ export default function SettingsComponent({
 }: Props) {
 	const settings = { ...DefaultSettings, ...storage.use() }
 	const [months, setMonths] = useState(String(settings.months))
+	const [limit, setLimit] = useState(String(settings.limitMb))
 
 	return (
 		<Page>
@@ -29,7 +30,28 @@ export default function SettingsComponent({
 					}}
 				/>
 			</TableRowGroup>
+			<TableRowGroup title="Upload limit">
+				<TableSwitchRow
+					label="Raise the upload size limit"
+					subLabel="Makes Discord's size check on your device allow bigger files. Discord's servers still decide what is really accepted."
+					value={settings.raiseLimit !== false}
+					onValueChange={(raiseLimit: boolean) => {
+						storage.set({ raiseLimit })
+						refreshUser()
+					}}
+				/>
+			</TableRowGroup>
 			<Stack spacing={16}>
+				<TextInput
+					label="Upload limit (MB)"
+					placeholder="1024"
+					size="md"
+					value={limit}
+					onChange={(value: string) => {
+						setLimit(value)
+						storage.set({ limitMb: clampMb(value) })
+					}}
+				/>
 				<TextInput
 					label="Subscriber for (months)"
 					placeholder="0"

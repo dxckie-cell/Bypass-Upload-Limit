@@ -3,11 +3,17 @@ export interface Settings {
 	enabled: boolean
 	// How many months ago the subscription is said to have started.
 	months: number
+	// Also raise the upload size limit Discord checks on your device.
+	raiseLimit: boolean
+	// The size limit to report, in MB.
+	limitMb: number
 }
 
 export const DefaultSettings: Settings = {
 	enabled: true,
 	months: 0,
+	raiseLimit: true,
+	limitMb: 1024,
 }
 
 let refresh: (() => void) | undefined
@@ -42,3 +48,20 @@ export function subscriberFields(months: number): Record<string, unknown> {
 		premium_since: since.toISOString(),
 	}
 }
+
+export const clampMb = (value: unknown): number => {
+	const mb = Math.floor(Number(value))
+	return Number.isFinite(mb) ? Math.min(Math.max(mb, 1), 102400) : DefaultSettings.limitMb
+}
+
+export const limitBytes = (mb: number) => clampMb(mb) * 1024 * 1024
+
+// Functions Discord may use to ask how large a file can be. Only the ones that exist get patched.
+export const LIMIT_FUNCTIONS = [
+	'getMaxFileSize',
+	'getUserMaxFileSize',
+	'getMaxFileSizeForUser',
+	'getMaxUploadSize',
+	'getUploadLimit',
+	'maxFileSize',
+]
