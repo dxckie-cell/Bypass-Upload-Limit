@@ -1,12 +1,14 @@
 import { getStore } from '@valenced/discord/flux'
 import { getModules } from '@valenced/modules/finders'
-import { withProps } from '@valenced/modules/finders/filters'
+import { createFilterGenerator } from '@valenced/modules/finders/filters'
 import { instead } from '@valenced/patcher'
 import {
 	clampMonths,
 	DefaultSettings,
-	LIMIT_FUNCTIONS,
 	limitBytes,
+	limitKeys,
+	LIMIT_NAME,
+	TOO_BIG_NAME,
 	setRefresh,
 	subscriberFields,
 } from './shared'
@@ -111,27 +113,47 @@ export default plugin<{ jsonStorage: Settings }>({
 		)
 
 		// The upload size limit Discord checks before sending a file. The server has the final say, so
-		// this only lifts the check on your device.
-		for (const name of LIMIT_FUNCTIONS) {
-			cleanup(
-				getModules(withProps(name), (module: any) => {
-					if (typeof module?.[name] !== 'function') return
-					try {
-						cleanup(
-							instead(module, name, function (args, original) {
-								const settings = current()
-								if (!settings.raiseLimit) return Reflect.apply(original, this, args)
-								const real = Reflect.apply(original, this, args)
-								const wanted = limitBytes(settings.limitMb)
-								return typeof real === 'number' ? Math.max(real, wanted) : wanted
-							}),
-						)
-					} catch {
-						// A function that can't be patched is left alone.
+		// this only lifts the check on your device. Every exported function that looks like a size
+		// limit is patched, since Discord's real names are not known.
+		const seen = new WeakSet<object>()
+		cleanup(
+			getModules(
+				createFilterGenerator<[]>(
+					(_args, _id, exports) => {
+						try {
+							const target = exports?.default ?? exports
+							return limitKeys(exports).length > 0 || limitKeys(target).length > 0
+						} catch {
+							return false
+						}
+					},
+					() => 'bypass-upload-limit',
+				)(),
+				(module: any) => {
+					for (const target of [module, module?.default]) {
+						if (!target || seen.has(target)) continue
+						seen.add(target)
+						for (const name of limitKeys(target)) {
+							try {
+								const tooBig = TOO_BIG_NAME.test(name) && !LIMIT_NAME.test(name)
+								cleanup(
+									instead(target, name, function (args, original) {
+										const settings = current()
+										const real = Reflect.apply(original, this, args)
+										if (!settings.raiseLimit) return real
+										if (tooBig) return typeof real === 'boolean' ? false : real
+										const wanted = limitBytes(settings.limitMb)
+										return typeof real === 'number' ? Math.max(real, wanted) : real
+									}),
+								)
+							} catch {
+								// A function that can't be patched is left alone.
+							}
+						}
 					}
-				}),
-			)
-		}
+				},
+			),
+		)
 
 		setRefresh(() => userStore?.emitChange?.())
 		cleanup(jsonStorage.subscribe(() => userStore?.emitChange?.()))

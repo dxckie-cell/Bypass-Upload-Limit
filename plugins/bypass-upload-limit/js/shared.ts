@@ -56,12 +56,20 @@ export const clampMb = (value: unknown): number => {
 
 export const limitBytes = (mb: number) => clampMb(mb) * 1024 * 1024
 
-// Functions Discord may use to ask how large a file can be. Only the ones that exist get patched.
-export const LIMIT_FUNCTIONS = [
-	'getMaxFileSize',
-	'getUserMaxFileSize',
-	'getMaxFileSizeForUser',
-	'getMaxUploadSize',
-	'getUploadLimit',
-	'maxFileSize',
-]
+// Names of Discord's size-limit functions are not known, so any exported function that looks like
+// one is patched. LIMIT returns a number of bytes, TOO_BIG answers whether a file is over the limit.
+export const LIMIT_NAME = /^(get|use)?(max.*(file|upload|attachment)|(file|upload|attachment).*(limit|max))/i
+export const TOO_BIG_NAME = /(file|upload|attachment).*(too(big|large)|exceed|overlimit)|(too(big|large)|exceed).*(file|upload|attachment)/i
+
+export const limitKeys = (target: unknown): string[] => {
+	const keys: string[] = []
+	try {
+		if (!target || (typeof target !== 'object' && typeof target !== 'function')) return keys
+		for (const key of Object.keys(target as object)) {
+			if ((LIMIT_NAME.test(key) || TOO_BIG_NAME.test(key)) && typeof (target as any)[key] === 'function') keys.push(key)
+		}
+	} catch {
+		// A module that can't be read is skipped.
+	}
+	return keys
+}

@@ -4,7 +4,7 @@
 	"name": "Bypass Upload Limit",
 	"description": "Treats you as a Nitro subscriber and raises Discord's upload size check on your device.",
 	"author": "dxckie (https://github.com/dxckie-cell \"GitHub\")",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"dependencies": {
 		"valenced.api": {
 			"version": ">=1 <2"
