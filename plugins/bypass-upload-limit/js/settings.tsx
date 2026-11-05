@@ -1,6 +1,7 @@
 import Page from '@valenced/components/Page'
 import { Design } from '@valenced/discord/design'
 import { useState } from 'react'
+import { Text } from 'react-native'
 import { clampMb, clampMonths, DefaultSettings, refreshUser } from './shared'
 import type { PluginSettingsComponent } from '@valenced/plugins/types'
 import type { ComponentProps } from 'react'
@@ -64,6 +65,13 @@ export default function SettingsComponent({
 					}}
 				/>
 			</Stack>
+			{settings.lastBlocked ? (
+				<TableRowGroup title="Last blocked (send a screenshot)">
+					<Text selectable style={{ fontSize: 11 }}>
+						{settings.lastBlocked}
+					</Text>
+				</TableRowGroup>
+			) : null}
 		</Page>
 	)
 }

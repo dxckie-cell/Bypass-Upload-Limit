@@ -7,6 +7,8 @@ export interface Settings {
 	raiseLimit: boolean
 	// The size limit to report, in MB.
 	limitMb: number
+	// What the last "too big" popup was opened from, to find the real size check.
+	lastBlocked: string
 }
 
 export const DefaultSettings: Settings = {
@@ -14,6 +16,7 @@ export const DefaultSettings: Settings = {
 	months: 0,
 	raiseLimit: true,
 	limitMb: 1024,
+	lastBlocked: '',
 }
 
 let refresh: (() => void) | undefined

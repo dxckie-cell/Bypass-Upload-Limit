@@ -1,7 +1,8 @@
 import { getStore } from '@valenced/discord/flux'
 import { getModules } from '@valenced/modules/finders'
-import { createFilterGenerator } from '@valenced/modules/finders/filters'
+import { createFilterGenerator, withProps } from '@valenced/modules/finders/filters'
 import { instead } from '@valenced/patcher'
+import { Alert } from 'react-native'
 import {
 	clampMonths,
 	DefaultSettings,
@@ -153,6 +154,48 @@ export default plugin<{ jsonStorage: Settings }>({
 					}
 				},
 			),
+		)
+
+		// When the "too big" popup opens, keep where it came from so the real size check can be found.
+		const tooBigText = /too big|exceeds the maximum|too large/i
+		const record = () => {
+			try {
+				const stack = String(new Error().stack ?? '').split('\n').slice(2, 16).join('\n')
+				storage?.set({ lastBlocked: stack.slice(0, 2000) })
+			} catch {
+				// Never break the popup over a note.
+			}
+		}
+		const watch = (args: unknown[]) => {
+			try {
+				if (tooBigText.test(JSON.stringify(args))) record()
+			} catch {
+				// Arguments that can't be read are skipped.
+			}
+		}
+		try {
+			cleanup(
+				instead(Alert, 'alert', function (args, original) {
+					watch(args)
+					return Reflect.apply(original, this, args)
+				}),
+			)
+		} catch {
+			// No Alert to watch.
+		}
+		cleanup(
+			getModules(withProps('openAlert'), (module: any) => {
+				try {
+					cleanup(
+						instead(module, 'openAlert', function (args, original) {
+							watch(args)
+							return Reflect.apply(original, this, args)
+						}),
+					)
+				} catch {
+					// Left alone.
+				}
+			}),
 		)
 
 		setRefresh(() => userStore?.emitChange?.())
